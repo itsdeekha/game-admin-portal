@@ -1,0 +1,51 @@
+networks:
+  game-api-net:
+    driver: bridge
+
+volumes:
+  game-api-data:
+    driver: local
+
+services:
+  postgres:
+    image: postgres:17.6-alpine
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    container_name: game-api-postgres-local
+    restart: unless-stopped
+    ports:
+      - ${DATABASE_PORT}:5432
+    volumes:
+      - ./.data/db:/var/lib/postgresql/data
+    networks:
+      - game-api-net
+
+  app:
+    container_name: game-api-local
+    image: game-api:local
+    build:
+      context: .
+      target: local
+    restart: unless-stopped
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    volumes:
+      - ./.env:/usr/src/app/.env:ro
+    depends_on:
+      - postgres
+    networks:
+      - game-api-net
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /usr/src/app/src
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ./package.json
+          target: /usr/src/app/package.json
+        - action: rebuild
+          path: ./package.json

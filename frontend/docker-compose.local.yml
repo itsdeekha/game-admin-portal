@@ -1,0 +1,36 @@
+services:
+  app:
+    build:
+      context: .
+      target: local
+      dockerfile: Dockerfile
+    container_name: game-ui
+    image: game-ui:local
+    restart: unless-stopped
+    volumes:
+      - ./.env:/usr/src/app/.env:ro
+    ports:
+      - 3000:3000
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /usr/src/app/src
+          ignore:
+            - node_modules/
+        - action: sync
+          path: ./package.json
+          target: /usr/src/app/package.json
+        - action: rebuild
+          path: ./package.json
+        - action: sync
+          path: ./public
+          target: /usr/src/app/public
+        - action: sync
+          path: ./index.html
+          target: /usr/src/app/index.html
+        - action: sync
+          path: ./vite.config.ts
+          target: /usr/src/app/vite.config.ts
+        - action: rebuild
+          path: ./vite.config.ts

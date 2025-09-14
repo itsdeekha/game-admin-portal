@@ -1,0 +1,52 @@
+name: Build & Deploy UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-ui.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/deploy-ui.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    name: Build & Deploy UI
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22.18.0'
+          cache: 'yarn'
+          cache-dependency-path: 'frontend/yarn.lock'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: ./frontend
+
+      - name: Decode .env
+        env:
+          ENVIRONMENT: ${{ secrets.ENVIRONMENT }}
+        run: echo "$ENVIRONMENT" > .env
+        working-directory: ./frontend
+
+      - name: Build React app
+        run: yarn build
+        working-directory: ./frontend
+        env:
+          CI: true
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=idk-game
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
